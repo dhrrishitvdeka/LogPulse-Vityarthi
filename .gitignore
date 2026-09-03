@@ -20,3 +20,10 @@ desktop.ini
 .settings/
 .project
 .classpath
+
+# Python & Temp files
+__pycache__/
+*.py[cod]
+*$py.class
+*.html
+!sample_logs/
