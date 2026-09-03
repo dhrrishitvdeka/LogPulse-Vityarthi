@@ -1,8 +1,5 @@
 package com.logpulse.model;
 
-/**
- * Standard HTTP Request Methods supported by web servers.
- */
 public enum HttpMethod {
     GET,
     POST,
@@ -15,12 +12,12 @@ public enum HttpMethod {
     CONNECT,
     UNKNOWN;
 
-    public static HttpMethod fromString(String methodStr) {
-        if (methodStr == null || methodStr.isBlank()) {
+    public static HttpMethod fromString(String method) {
+        if (method == null || method.isBlank()) {
             return UNKNOWN;
         }
         try {
-            return HttpMethod.valueOf(methodStr.trim().toUpperCase());
+            return HttpMethod.valueOf(method.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             return UNKNOWN;
         }

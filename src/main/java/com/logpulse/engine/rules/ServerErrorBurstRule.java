@@ -9,9 +9,6 @@ import com.logpulse.model.SeverityLevel;
 
 import java.util.Optional;
 
-/**
- * Flags sudden spikes in HTTP 5xx responses signaling upstream backend failures or application crashes.
- */
 public class ServerErrorBurstRule implements Rule {
 
     private final SlidingWindowRateLimiter rateLimiter;
@@ -34,8 +31,7 @@ public class ServerErrorBurstRule implements Rule {
         int count = rateLimiter.recordAndCount(key, entry.getTimestamp());
 
         if (count >= errorThreshold && (count == errorThreshold || count % errorThreshold == 0)) {
-            String details = String.format("Observed %d HTTP 5xx errors on endpoint '%s' within %ds window",
-                    count, entry.getEndpoint(), windowSeconds);
+            String details = count + " 5xx errors on '" + entry.getEndpoint() + "' in " + windowSeconds + "s";
 
             return Optional.of(new Incident(
                     AnomalyType.SERVER_ERROR_BURST,

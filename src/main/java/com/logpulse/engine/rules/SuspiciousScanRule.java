@@ -9,12 +9,9 @@ import com.logpulse.model.SeverityLevel;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Detects malicious endpoint reconnaissance, web vulnerability scanners, and directory traversal probes.
- */
 public class SuspiciousScanRule implements Rule {
 
-    private static final List<String> SENSITIVE_PATTERNS = List.of(
+    private static final List<String> PATHS = List.of(
             "/wp-admin",
             "/wp-login",
             "/.env",
@@ -32,13 +29,10 @@ public class SuspiciousScanRule implements Rule {
 
     @Override
     public Optional<Incident> evaluate(LogEntry entry) {
-        String endpointLower = entry.getEndpoint().toLowerCase();
+        String path = entry.getEndpoint().toLowerCase();
 
-        for (String pattern : SENSITIVE_PATTERNS) {
-            if (endpointLower.contains(pattern)) {
-                String details = String.format("Reconnaissance signature '%s' detected in request URL '%s'",
-                        pattern, entry.getEndpoint());
-
+        for (String target : PATHS) {
+            if (path.contains(target)) {
                 return Optional.of(new Incident(
                         AnomalyType.SUSPICIOUS_PATH_SCAN,
                         SeverityLevel.HIGH,
@@ -46,7 +40,7 @@ public class SuspiciousScanRule implements Rule {
                         entry.getTimestamp(),
                         1,
                         0,
-                        details
+                        "Matched pattern: " + target
                 ));
             }
         }
@@ -56,6 +50,6 @@ public class SuspiciousScanRule implements Rule {
 
     @Override
     public String getRuleName() {
-        return "SuspiciousPathReconnaissanceRule";
+        return "SuspiciousScanRule";
     }
 }

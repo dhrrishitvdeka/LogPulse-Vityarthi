@@ -8,9 +8,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-/**
- * Thread-safe aggregator for incidents with algorithmic Top-K heap extraction.
- */
 public class IncidentAggregator {
 
     private final ConcurrentLinkedQueue<Incident> incidents = new ConcurrentLinkedQueue<>();
@@ -18,9 +15,6 @@ public class IncidentAggregator {
     private final ConcurrentHashMap<AnomalyType, Integer> anomalyTypeCounts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SeverityLevel, Integer> severityCounts = new ConcurrentHashMap<>();
 
-    /**
-     * Records a newly detected incident into aggregate tracking.
-     */
     public void record(Incident incident) {
         if (incident == null) return;
 
@@ -48,19 +42,11 @@ public class IncidentAggregator {
         return Collections.unmodifiableMap(severityCounts);
     }
 
-    /**
-     * Extracts the top-K offending IP addresses based on cumulative incidents
-     * using an optimal Min-Heap (PriorityQueue) in O(N log K) time.
-     *
-     * @param k The number of top offending IPs to retrieve.
-     * @return List of IpOffenseSummary sorted descending by incident count.
-     */
     public List<IpOffenseSummary> getTopOffenders(int k) {
         if (k <= 0 || ipIncidentMap.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // Min-Heap ordered by incident count ascending
         PriorityQueue<IpOffenseSummary> minHeap = new PriorityQueue<>(
                 Comparator.comparingInt(IpOffenseSummary::incidentCount)
         );
@@ -89,15 +75,11 @@ public class IncidentAggregator {
             }
         }
 
-        // Extract from heap and sort descending
         List<IpOffenseSummary> result = new ArrayList<>(minHeap);
         result.sort((a, b) -> Integer.compare(b.incidentCount(), a.incidentCount()));
         return result;
     }
 
-    /**
-     * Immutable data transfer object summarizing offenses per IP.
-     */
     public record IpOffenseSummary(
             String ip,
             int incidentCount,

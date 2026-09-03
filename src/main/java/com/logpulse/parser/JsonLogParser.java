@@ -8,24 +8,20 @@ import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * High-speed, zero-dependency JSON log parser for modern cloud/microservice logs.
- * Extracts standard keys (timestamp, client_ip/ip, method, endpoint/uri/path, status/status_code, etc.)
- */
 public class JsonLogParser implements LogParser {
 
-    private static final Pattern STRING_KEY_PATTERN = Pattern.compile("\"([a-zA-Z0-9_.-]+)\"\\s*:\\s*\"([^\"]*)\"");
-    private static final Pattern NUMBER_KEY_PATTERN = Pattern.compile("\"([a-zA-Z0-9_.-]+)\"\\s*:\\s*(-?\\d+)");
+    private static final Pattern STR_PATTERN = Pattern.compile("\"([a-zA-Z0-9_.-]+)\"\\s*:\\s*\"([^\"]*)\"");
+    private static final Pattern NUM_PATTERN = Pattern.compile("\"([a-zA-Z0-9_.-]+)\"\\s*:\\s*(-?\\d+)");
 
     @Override
     public LogEntry parse(String rawLine, long lineNumber) throws LogParseException {
         if (rawLine == null || rawLine.isBlank()) {
-            throw new LogParseException("Blank line encountered", rawLine, lineNumber);
+            throw new LogParseException("Empty line", rawLine, lineNumber);
         }
 
         String trimmed = rawLine.trim();
         if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
-            throw new LogParseException("Line is not a valid JSON object", rawLine, lineNumber);
+            throw new LogParseException("Invalid JSON payload", rawLine, lineNumber);
         }
 
         try {
@@ -39,74 +35,34 @@ public class JsonLogParser implements LogParser {
             String userAgent = "-";
             String referer = "-";
 
-            // Extract string properties
-            Matcher strMatcher = STRING_KEY_PATTERN.matcher(trimmed);
+            Matcher strMatcher = STR_PATTERN.matcher(trimmed);
             while (strMatcher.find()) {
                 String key = strMatcher.group(1).toLowerCase();
                 String val = strMatcher.group(2);
 
                 switch (key) {
-                    case "client_ip":
-                    case "clientip":
-                    case "ip":
-                    case "remote_addr":
-                        clientIp = val;
-                        break;
-                    case "timestamp":
-                    case "time":
-                    case "@timestamp":
-                    case "date":
+                    case "client_ip", "clientip", "ip", "remote_addr" -> clientIp = val;
+                    case "timestamp", "time", "@timestamp", "date" -> {
                         try {
                             timestamp = Instant.parse(val);
-                        } catch (Exception ignored) {
-                        }
-                        break;
-                    case "method":
-                    case "http_method":
-                    case "verb":
-                        method = HttpMethod.fromString(val);
-                        break;
-                    case "endpoint":
-                    case "uri":
-                    case "path":
-                    case "url":
-                        endpoint = val;
-                        break;
-                    case "user_agent":
-                    case "useragent":
-                        userAgent = val;
-                        break;
-                    case "referer":
-                    case "referrer":
-                        referer = val;
-                        break;
+                        } catch (Exception ignored) {}
+                    }
+                    case "method", "http_method", "verb" -> method = HttpMethod.fromString(val);
+                    case "endpoint", "uri", "path", "url" -> endpoint = val;
+                    case "user_agent", "useragent" -> userAgent = val;
+                    case "referer", "referrer" -> referer = val;
                 }
             }
 
-            // Extract numeric properties
-            Matcher numMatcher = NUMBER_KEY_PATTERN.matcher(trimmed);
+            Matcher numMatcher = NUM_PATTERN.matcher(trimmed);
             while (numMatcher.find()) {
                 String key = numMatcher.group(1).toLowerCase();
                 long val = Long.parseLong(numMatcher.group(2));
 
                 switch (key) {
-                    case "status":
-                    case "status_code":
-                    case "code":
-                    case "http_status":
-                        statusCode = (int) val;
-                        break;
-                    case "bytes":
-                    case "body_bytes_sent":
-                    case "size":
-                        bytes = val;
-                        break;
-                    case "response_time_ms":
-                    case "duration_ms":
-                    case "latency_ms":
-                    case "time_taken":
-                        responseTimeMs = val;
-                        break;
+                    case "status", "status_code", "code", "http_status" -> statusCode = (int) val;
+                    case "bytes", "body_bytes_sent", "size" -> bytes = val;
+                    case "response_time_ms", "duration_ms", "latency_ms" -> responseTimeMs = val;
                 }
             }
 
@@ -125,7 +81,7 @@ public class JsonLogParser implements LogParser {
                     .build();
 
         } catch (Exception e) {
-            throw new LogParseException("Failed to parse JSON log line: " + e.getMessage(), rawLine, lineNumber, e);
+            throw new LogParseException("Failed to parse JSON: " + e.getMessage(), rawLine, lineNumber, e);
         }
     }
 
@@ -138,6 +94,6 @@ public class JsonLogParser implements LogParser {
 
     @Override
     public String getFormatName() {
-        return "Structured JSON Microservice Format";
+        return "JSON";
     }
 }

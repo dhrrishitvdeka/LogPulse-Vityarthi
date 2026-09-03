@@ -6,9 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-/**
- * Immutable configuration options for the LogPulse processing pipeline.
- */
 public final class LogPulseConfig {
     private final String logFilePath;
     private final String format;
@@ -97,8 +94,8 @@ public final class LogPulseConfig {
         private String exportPath = "logpulse_report.json";
         private int queueCapacity = 10_000;
 
-        public Builder logFilePath(String logFilePath) {
-            this.logFilePath = logFilePath;
+        public Builder logFilePath(String path) {
+            this.logFilePath = path;
             return this;
         }
 
@@ -142,13 +139,13 @@ public final class LogPulseConfig {
             return this;
         }
 
-        public Builder exportPath(String exportPath) {
-            this.exportPath = exportPath;
+        public Builder exportPath(String path) {
+            this.exportPath = path;
             return this;
         }
 
-        public Builder queueCapacity(int queueCapacity) {
-            this.queueCapacity = queueCapacity;
+        public Builder queueCapacity(int capacity) {
+            this.queueCapacity = capacity;
             return this;
         }
 
@@ -158,13 +155,13 @@ public final class LogPulseConfig {
             }
             Path path = Paths.get(logFilePath);
             if (!Files.exists(path)) {
-                throw new ConfigurationException("Target log file does not exist: " + logFilePath);
+                throw new ConfigurationException("File not found: " + logFilePath);
             }
             if (slidingWindowSeconds <= 0) {
-                throw new ConfigurationException("Sliding window seconds must be greater than 0");
+                throw new ConfigurationException("Window duration must be positive");
             }
             if (rateLimitThreshold <= 0 || authFailureThreshold <= 0 || serverErrorThreshold <= 0) {
-                throw new ConfigurationException("Anomaly detection thresholds must be positive integers");
+                throw new ConfigurationException("Thresholds must be positive numbers");
             }
             if (workerThreads <= 0) {
                 throw new ConfigurationException("Worker thread count must be positive");

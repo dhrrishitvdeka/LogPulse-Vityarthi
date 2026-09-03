@@ -4,9 +4,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Represents a security or operational incident flagged by the anomaly detection engine.
- */
 public final class Incident implements Comparable<Incident> {
     private final String incidentId;
     private final AnomalyType anomalyType;
@@ -20,10 +17,10 @@ public final class Incident implements Comparable<Incident> {
     public Incident(AnomalyType anomalyType, SeverityLevel severity, String clientIp,
                     Instant detectedAt, int eventCount, long windowSeconds, String details) {
         this.incidentId = UUID.randomUUID().toString().substring(0, 8);
-        this.anomalyType = Objects.requireNonNull(anomalyType, "anomalyType cannot be null");
-        this.severity = Objects.requireNonNull(severity, "severity cannot be null");
-        this.clientIp = Objects.requireNonNull(clientIp, "clientIp cannot be null");
-        this.detectedAt = Objects.requireNonNull(detectedAt, "detectedAt cannot be null");
+        this.anomalyType = anomalyType;
+        this.severity = severity;
+        this.clientIp = clientIp;
+        this.detectedAt = detectedAt;
         this.eventCount = eventCount;
         this.windowSeconds = windowSeconds;
         this.details = details != null ? details : "";
@@ -63,10 +60,9 @@ public final class Incident implements Comparable<Incident> {
 
     @Override
     public int compareTo(Incident other) {
-        // Highest severity first; if equal, highest event count first
-        int severityComparison = Integer.compare(other.severity.getRank(), this.severity.getRank());
-        if (severityComparison != 0) {
-            return severityComparison;
+        int cmp = Integer.compare(other.severity.getRank(), this.severity.getRank());
+        if (cmp != 0) {
+            return cmp;
         }
         return Integer.compare(other.eventCount, this.eventCount);
     }
@@ -85,7 +81,6 @@ public final class Incident implements Comparable<Incident> {
 
     @Override
     public String toString() {
-        return String.format("[%s] %s | IP: %-15s | Count: %-4d | %s",
-                severity, anomalyType, clientIp, eventCount, details);
+        return "[" + severity + "] " + anomalyType + " | " + clientIp + " (" + eventCount + ") " + details;
     }
 }

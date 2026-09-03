@@ -10,9 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/**
- * Exports incidents in tabular CSV format for SIEM ingestion and spreadsheet analysis.
- */
 public class CsvReportExporter implements ReportExporter {
 
     @Override
@@ -22,7 +19,6 @@ public class CsvReportExporter implements ReportExporter {
         }
 
         try (BufferedWriter writer = Files.newBufferedWriter(outputPath)) {
-            // Write CSV Header
             writer.write("IncidentId,Timestamp,AnomalyType,Severity,ClientIP,EventCount,WindowSeconds,Details\n");
 
             List<Incident> incidents = aggregator.getAllIncidents();
