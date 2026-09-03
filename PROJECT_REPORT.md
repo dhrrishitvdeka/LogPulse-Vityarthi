@@ -11,7 +11,8 @@
 * **Platform**: VITyarthi Learning Destination
 * **Submission Date**: September 2026
 * **Language & Runtime**: Java SE 17+ (JDK 26 Verified)
-* **Author**: Solo Student Submission
+* **Author**: Dhrrishit V Deka
+* **Contact Email**: n9yyk6uuu@mozmail.com
 
 ---
 
@@ -139,15 +140,15 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    User((System Admin / SRE))
+    User["System Admin / SRE"]
 
-    subgraph LogPulse System
-        UC1[Analyze Server Access Log]
-        UC2[Configure Detection Thresholds & Windows]
-        UC3[Auto-Detect Log Format]
-        UC4[Inspect Terminal Telemetry Dashboard]
-        UC5[Export JSON / CSV Incident Report]
-        UC6[Run Automated Verification Test Suite]
+    subgraph LogPulseSystem["LogPulse System"]
+        UC1["Analyze Server Access Log"]
+        UC2["Configure Detection Thresholds"]
+        UC3["Auto-Detect Log Format"]
+        UC4["Inspect Terminal Dashboard"]
+        UC5["Export JSON / CSV Report"]
+        UC6["Run Verification Test Suite"]
     end
 
     User --> UC1
@@ -163,30 +164,30 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    Start([CLI Launch]) --> ParseArgs[Parse CLI Arguments & Build Config]
+    Start([CLI Launch]) --> ParseArgs[Parse CLI Arguments]
     ParseArgs --> Validate{File Exists?}
-    Validate -- No --> ExitErr[Print Configuration Error & Exit 1]
-    Validate -- Yes --> DetectFormat[Sniff File & Resolve Parser Strategy]
-    DetectFormat --> InitPool[Initialize Worker Thread Pool & ArrayBlockingQueue]
-    InitPool --> StartProducer[Start Producer Thread: Read File Stream]
-    StartProducer --> StartWorkers[Start Consumer Worker Threads]
-
-    subgraph Pipeline Loop
-        WorkerRead[Worker Dequeues Raw Line] --> IsPoison{Is Poison Pill?}
-        IsPoison -- Yes --> WorkerExit[Worker Terminates]
-        IsPoison -- No --> ParseLine[Parse Line via LogParser Strategy]
-        ParseLine -- Syntax Error --> IncMalformed[Increment Malformed Counter]
-        ParseLine -- Valid --> EvalRules[Evaluate Anomaly & Sliding Window Rules]
-        EvalRules -- Anomaly Triggered --> RecordIncident[Push Incident to Aggregator]
-        EvalRules -- Normal --> NextLine[Continue]
-    end
-
-    WorkerExit --> AwaitCompletion[CountDownLatch Await All Workers]
-    AwaitCompletion --> ExtractHeap[Extract Top-K Offenders via Min-Heap]
-    ExtractHeap --> RenderCLI[Render Terminal Dashboard & Tables]
+    Validate -->|No| ExitErr[Print Error and Exit 1]
+    Validate -->|Yes| DetectFormat[Resolve Parser Strategy]
+    DetectFormat --> InitPool[Initialize Worker Pool and Queue]
+    InitPool --> StartWorkers[Start Consumer Workers]
+    InitPool --> StartProducer[Start Producer Thread]
+    StartProducer --> WorkerRead[Worker Takes Line from Queue]
+    WorkerRead --> IsPoison{Is Poison Pill?}
+    IsPoison -->|Yes| WorkerExit[Worker Terminates]
+    IsPoison -->|No| ParseLine[Parse Line via Strategy]
+    ParseLine -->|Invalid| IncMalformed[Increment Malformed Counter]
+    ParseLine -->|Valid| EvalRules[Evaluate Anomaly Rules]
+    EvalRules -->|Anomaly| RecordIncident[Push Incident to Aggregator]
+    EvalRules -->|Normal| NextLine[Process Next Line]
+    IncMalformed --> NextLine
+    RecordIncident --> NextLine
+    NextLine --> WorkerRead
+    WorkerExit --> AwaitCompletion[Await All Workers]
+    AwaitCompletion --> ExtractHeap[Extract Top-K via Min-Heap]
+    ExtractHeap --> RenderCLI[Render Terminal Dashboard]
     RenderCLI --> ExportCheck{Export Requested?}
-    ExportCheck -- Yes --> WriteFiles[Write JSON / CSV Files]
-    ExportCheck -- No --> Terminate([Exit 0 OK])
+    ExportCheck -->|Yes| WriteFiles[Write JSON / CSV Files]
+    ExportCheck -->|No| Terminate([Exit 0 OK])
     WriteFiles --> Terminate
 ```
 
@@ -195,131 +196,90 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as User / CI Runner
-    participant Main as Main (CLI)
-    participant Pipe as LogPipeline
-    participant Prod as Producer (NIO Reader)
-    participant Queue as ArrayBlockingQueue
-    participant Worker as Consumer Worker
-    participant Parser as LogParser Strategy
-    participant Engine as AnomalyDetectionEngine
-    participant Agg as IncidentAggregator
+    actor User as "User / CI Runner"
+    participant Main as "Main CLI"
+    participant Pipe as "LogPipeline"
+    participant Prod as "Producer Reader"
+    participant Queue as "ArrayBlockingQueue"
+    participant Worker as "Consumer Worker"
+    participant Parser as "LogParser"
+    participant Engine as "AnomalyEngine"
+    participant Agg as "IncidentAggregator"
 
-    User->>Main: java -cp bin com.logpulse.Main --file sample.log
-    Main->>Pipe: new LogPipeline(config).execute()
-    Pipe->>Prod: Start async reading
+    User->>Main: java -cp bin com.logpulse.Main --file logfile.log
+    Main->>Pipe: execute()
+    Pipe->>Prod: Start stream reader
     loop For each line in file
         Prod->>Queue: put(rawLine)
     end
-    Prod->>Queue: put(POISON_PILL * workerCount)
+    Prod->>Queue: put(POISON_PILL)
 
-    loop While queue not empty
+    loop While queue has items
         Worker->>Queue: take()
-        Worker->>Parser: parse(rawLine, lineNum)
+        Worker->>Parser: parse(line, lineNum)
         Parser-->>Worker: LogEntry
-        Worker->>Engine: evaluate(logEntry)
+        Worker->>Engine: evaluate(entry)
         Engine->>Agg: record(incident)
     end
 
-    Pipe->>Main: Return LogStats
+    Pipe->>Main: LogStats
     Main->>Agg: getTopOffenders(k)
-    Agg-->>Main: List<IpOffenseSummary>
-    Main->>User: Render Terminal Dashboard & Exit 0
+    Agg-->>Main: List of Top Offenders
+    Main->>User: Render Dashboard
 ```
 
 ### 7.4 Class / Component Diagram
 
 ```mermaid
-classDiagram
-    class Main {
-        +main(String[] args)
-        -parseCommandLineArgs(String[] args) LogPulseConfig
-        -handleExports(LogPulseConfig, LogStats, LogPipeline)
-    }
+flowchart TD
+    subgraph CoreDomain["Core Models"]
+        LogEntry["LogEntry<br/>- clientIp: String<br/>- timestamp: Instant<br/>- statusCode: int"]
+        Incident["Incident<br/>- incidentId: String<br/>- anomalyType: AnomalyType<br/>- severity: SeverityLevel"]
+    end
 
-    class LogPulseConfig {
-        -String logFilePath
-        -String format
-        -long slidingWindowSeconds
-        -int rateLimitThreshold
-        -int authFailureThreshold
-        -int topKOffenders
-        -int workerThreads
-        +builder() Builder
-    }
+    subgraph ParserModule["Parser Strategy Layer"]
+        ILogParser["«interface»<br/>LogParser"]
+        ApacheParser["ApacheCombinedLogParser"]
+        JsonParser["JsonLogParser"]
+        SyslogParser["SyslogParser"]
+        ParserFactory["ParserFactory"]
 
-    class LogEntry {
-        -String clientIp
-        -Instant timestamp
-        -HttpMethod method
-        -String endpoint
-        -int statusCode
-        -long responseBytes
-        -long responseTimeMs
-        +isAuthFailure() boolean
-        +isServerError() boolean
-    }
+        ApacheParser -.->|implements| ILogParser
+        JsonParser -.->|implements| ILogParser
+        SyslogParser -.->|implements| ILogParser
+        ParserFactory -->|instantiates| ILogParser
+    end
 
-    class LogParser {
-        <<interface>>
-        +parse(String rawLine, long lineNumber) LogEntry
-        +canParse(String sampleLine) boolean
-        +getFormatName() String
-    }
+    subgraph EngineModule["Engine & Concurrency"]
+        LogPipeline["LogPipeline"]
+        SlidingWindow["SlidingWindowRateLimiter"]
+        DetectionEngine["AnomalyDetectionEngine"]
+        IRule["«interface»<br/>Rule"]
+        BruteForce["BruteForceRule"]
+        RateLimit["RateLimitRule"]
+        ScanRule["SuspiciousScanRule"]
+        ServerError["ServerErrorBurstRule"]
 
-    class ApacheCombinedLogParser {
-        -Pattern pattern
-        -DateTimeFormatter formatter
-        +parse(String, long) LogEntry
-    }
+        BruteForce -.->|implements| IRule
+        RateLimit -.->|implements| IRule
+        ScanRule -.->|implements| IRule
+        ServerError -.->|implements| IRule
+        DetectionEngine --> IRule
+        LogPipeline --> DetectionEngine
+        DetectionEngine <--> SlidingWindow
+    end
 
-    class JsonLogParser {
-        +parse(String, long) LogEntry
-    }
+    subgraph AggregationModule["Aggregation & Reporting"]
+        IncidentAggregator["IncidentAggregator<br/>(Min-Heap Top-K)"]
+        TerminalReporter["TerminalReporter"]
+        JsonExporter["JsonReportExporter"]
+        CsvExporter["CsvReportExporter"]
 
-    class SyslogParser {
-        +parse(String, long) LogEntry
-    }
-
-    class LogParserFactory {
-        +getParser(String format, Path path) LogParser
-        +autoDetect(Path path) LogParser
-    }
-
-    class Rule {
-        <<interface>>
-        +evaluate(LogEntry entry) Optional~Incident~
-        +getRuleName() String
-    }
-
-    class SlidingWindowRateLimiter {
-        -ConcurrentHashMap~String, ArrayDeque~Long~~ keyWindows
-        -long windowMillis
-        +recordAndCount(String key, Instant eventTime) int
-        +cleanupInactiveKeys()
-    }
-
-    class BruteForceRule {
-        -SlidingWindowRateLimiter rateLimiter
-        -int failureThreshold
-        +evaluate(LogEntry) Optional~Incident~
-    }
-
-    class IncidentAggregator {
-        -ConcurrentLinkedQueue~Incident~ incidents
-        -ConcurrentHashMap~String, List~Incident~~ ipIncidentMap
-        +record(Incident incident)
-        +getTopOffenders(int k) List~IpOffenseSummary~
-    }
-
-    LogParser <|.. ApacheCombinedLogParser
-    LogParser <|.. JsonLogParser
-    LogParser <|.. SyslogParser
-    Rule <|.. BruteForceRule
-    BruteForceRule --> SlidingWindowRateLimiter
-    Main --> LogPulseConfig
-    Main --> LogEntry
-    IncidentAggregator --> LogPulseConfig
+        DetectionEngine -->|emits incident| IncidentAggregator
+        IncidentAggregator --> TerminalReporter
+        IncidentAggregator --> JsonExporter
+        IncidentAggregator --> CsvExporter
+    end
 ```
 
 ### 7.5 Storage & Audit Log Schema
