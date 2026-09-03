@@ -7,7 +7,7 @@
 * **Project Title**: LogPulse: High-Throughput Multi-Threaded Server Log Anomaly & Rate Limiter Engine
 * **Course Title**: Programming in Java
 * **Academic Component**: Evaluated Course Project (Flipped Course Evaluation)
-* **Institution**: VIT Bhopal University — School of Computing Science and Engineering
+* **Institution**: VIT Bhopal University — School of Computing Science and Artificial Intelligence (SCAI)
 * **Platform**: VITyarthi Learning Destination
 * **Submission Date**: September 2026
 * **Language & Runtime**: Java SE 17+ (JDK 26 Verified)

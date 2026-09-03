@@ -279,7 +279,7 @@ def generate_clean_report():
 <div class="cover-page">
   <div>
     <div class="cover-institution">{metadata.get('Institution', 'VIT Bhopal University')}</div>
-    <div class="cover-dept">School of Computing Science and Engineering</div>
+    <div class="cover-dept">School of Computing Science and Artificial Intelligence (SCAI)</div>
   </div>
 
   <div>
