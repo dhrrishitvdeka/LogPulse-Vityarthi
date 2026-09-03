@@ -283,6 +283,6 @@ Java-VitYarthi/
 ## 10. Author & Contact
 
 * **Author**: Dhrrishit V Deka
-* **Email**: [n9yyk6uuu@mozmail.com](mailto:n9yyk6uuu@mozmail.com)
+* **Email**: [dhrrishitvdeka@duck.com](mailto:dhrrishitvdeka@duck.com)
 * **Institution**: VIT Bhopal University — School of Computing Science and Artificial Intelligence (SCAI)
 * **Course**: Programming in Java (Evaluated Course Project, VITyarthi Platform)
