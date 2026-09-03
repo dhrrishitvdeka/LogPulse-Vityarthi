@@ -5,9 +5,6 @@ import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Thread-safe statistics and telemetry container for a pipeline run.
- */
 public class LogStats {
     private final Instant startTime;
     private volatile Instant endTime;
@@ -93,7 +90,7 @@ public class LogStats {
     }
 
     public double getThroughputMegabytesPerSecond() {
-        double megabytes = totalBytesProcessed.get() / (1024.0 * 1024.0);
-        return megabytes / getElapsedSeconds();
+        double mb = totalBytesProcessed.get() / (1024.0 * 1024.0);
+        return mb / getElapsedSeconds();
     }
 }

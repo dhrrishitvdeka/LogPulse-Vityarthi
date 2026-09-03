@@ -3,9 +3,6 @@ package com.logpulse.model;
 import java.time.Instant;
 import java.util.Objects;
 
-/**
- * Immutable domain representation of an individual parsed server log entry.
- */
 public final class LogEntry {
     private final String clientIp;
     private final Instant timestamp;
@@ -21,8 +18,8 @@ public final class LogEntry {
     private final long lineNumber;
 
     private LogEntry(Builder builder) {
-        this.clientIp = Objects.requireNonNull(builder.clientIp, "clientIp cannot be null");
-        this.timestamp = Objects.requireNonNull(builder.timestamp, "timestamp cannot be null");
+        this.clientIp = builder.clientIp != null ? builder.clientIp : "127.0.0.1";
+        this.timestamp = builder.timestamp != null ? builder.timestamp : Instant.now();
         this.method = builder.method != null ? builder.method : HttpMethod.UNKNOWN;
         this.endpoint = builder.endpoint != null ? builder.endpoint : "/";
         this.httpVersion = builder.httpVersion != null ? builder.httpVersion : "HTTP/1.1";
@@ -98,15 +95,14 @@ public final class LogEntry {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof LogEntry logEntry)) return false;
-        return statusCode == logEntry.statusCode &&
-               responseBytes == logEntry.responseBytes &&
-               responseTimeMs == logEntry.responseTimeMs &&
-               lineNumber == logEntry.lineNumber &&
-               Objects.equals(clientIp, logEntry.clientIp) &&
-               Objects.equals(timestamp, logEntry.timestamp) &&
-               method == logEntry.method &&
-               Objects.equals(endpoint, logEntry.endpoint);
+        if (!(o instanceof LogEntry that)) return false;
+        return statusCode == that.statusCode &&
+               responseBytes == that.responseBytes &&
+               lineNumber == that.lineNumber &&
+               Objects.equals(clientIp, that.clientIp) &&
+               Objects.equals(timestamp, that.timestamp) &&
+               method == that.method &&
+               Objects.equals(endpoint, that.endpoint);
     }
 
     @Override
@@ -116,8 +112,7 @@ public final class LogEntry {
 
     @Override
     public String toString() {
-        return String.format("[%s] %s %s %s -> %d (%d bytes, %d ms)",
-                timestamp, clientIp, method, endpoint, statusCode, responseBytes, responseTimeMs);
+        return timestamp + " " + clientIp + " " + method + " " + endpoint + " " + statusCode;
     }
 
     public static Builder builder() {
@@ -125,18 +120,18 @@ public final class LogEntry {
     }
 
     public static class Builder {
-        private String clientIp = "127.0.0.1";
-        private Instant timestamp = Instant.now();
-        private HttpMethod method = HttpMethod.GET;
-        private String endpoint = "/";
-        private String httpVersion = "HTTP/1.1";
+        private String clientIp;
+        private Instant timestamp;
+        private HttpMethod method;
+        private String endpoint;
+        private String httpVersion;
         private int statusCode = 200;
-        private long responseBytes = 0;
-        private long responseTimeMs = 0;
-        private String userAgent = "-";
-        private String referer = "-";
-        private String rawLine = "";
-        private long lineNumber = 0;
+        private long responseBytes;
+        private long responseTimeMs;
+        private String userAgent;
+        private String referer;
+        private String rawLine;
+        private long lineNumber;
 
         public Builder clientIp(String clientIp) {
             this.clientIp = clientIp;

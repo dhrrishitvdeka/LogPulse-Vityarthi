@@ -9,9 +9,6 @@ import com.logpulse.model.SeverityLevel;
 
 import java.util.Optional;
 
-/**
- * Flags high-volume request floods and potential DoS or web scraping bursts from a single IP.
- */
 public class RateLimitRule implements Rule {
 
     private final SlidingWindowRateLimiter rateLimiter;
@@ -31,9 +28,7 @@ public class RateLimitRule implements Rule {
 
         if (count >= requestLimitThreshold && (count == requestLimitThreshold || count % (requestLimitThreshold / 2) == 0)) {
             SeverityLevel severity = (count >= requestLimitThreshold * 2) ? SeverityLevel.CRITICAL : SeverityLevel.MEDIUM;
-
-            String details = String.format("Request volume (%d reqs) exceeded rate-limit threshold (%d) within %ds window",
-                    count, requestLimitThreshold, windowSeconds);
+            String details = count + " requests in " + windowSeconds + "s (threshold: " + requestLimitThreshold + ")";
 
             return Optional.of(new Incident(
                     AnomalyType.RATE_LIMIT_EXCEEDED,
@@ -51,6 +46,6 @@ public class RateLimitRule implements Rule {
 
     @Override
     public String getRuleName() {
-        return "RateLimitSpikeRule";
+        return "RateLimitRule";
     }
 }

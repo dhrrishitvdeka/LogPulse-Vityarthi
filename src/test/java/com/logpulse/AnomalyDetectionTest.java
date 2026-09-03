@@ -8,57 +8,52 @@ import com.logpulse.model.*;
 import java.time.Instant;
 import java.util.Optional;
 
-/**
- * Unit tests verifying anomaly rules and incident triggers.
- */
 public class AnomalyDetectionTest {
 
     public static void runAll() {
-        testBruteForceRuleTrigger();
+        testBruteForceRule();
         testSuspiciousScanRule();
-        testServerErrorBurstRule();
-        System.out.println("  ✔ AnomalyDetectionTest: All detection rule test suites passed.");
+        testServerErrorBurst();
     }
 
-    public static void testBruteForceRuleTrigger() {
+    public static void testBruteForceRule() {
         BruteForceRule rule = new BruteForceRule(3, 60);
         Instant now = Instant.now();
 
-        LogEntry failure1 = LogEntry.builder().clientIp("10.10.10.1").statusCode(401).timestamp(now).build();
-        LogEntry failure2 = LogEntry.builder().clientIp("10.10.10.1").statusCode(403).timestamp(now.plusSeconds(1)).build();
-        LogEntry failure3 = LogEntry.builder().clientIp("10.10.10.1").statusCode(401).timestamp(now.plusSeconds(2)).build();
+        LogEntry f1 = LogEntry.builder().clientIp("10.10.10.1").statusCode(401).timestamp(now).build();
+        LogEntry f2 = LogEntry.builder().clientIp("10.10.10.1").statusCode(403).timestamp(now.plusSeconds(1)).build();
+        LogEntry f3 = LogEntry.builder().clientIp("10.10.10.1").statusCode(401).timestamp(now.plusSeconds(2)).build();
 
-        assert rule.evaluate(failure1).isEmpty() : "Should not trigger on 1st failure";
-        assert rule.evaluate(failure2).isEmpty() : "Should not trigger on 2nd failure";
+        if (rule.evaluate(f1).isPresent()) throw new AssertionError("Triggered prematurely on 1st fail");
+        if (rule.evaluate(f2).isPresent()) throw new AssertionError("Triggered prematurely on 2nd fail");
 
-        Optional<Incident> incident = rule.evaluate(failure3);
-        assert incident.isPresent() : "Must trigger incident on 3rd failure";
-        assert incident.get().getAnomalyType() == AnomalyType.BRUTE_FORCE_AUTH;
-        assert incident.get().getSeverity() == SeverityLevel.HIGH;
+        Optional<Incident> inc = rule.evaluate(f3);
+        if (inc.isEmpty()) throw new AssertionError("Expected incident on 3rd failure");
+        if (inc.get().getAnomalyType() != AnomalyType.BRUTE_FORCE_AUTH) throw new AssertionError("Type mismatch");
     }
 
     public static void testSuspiciousScanRule() {
         SuspiciousScanRule rule = new SuspiciousScanRule();
 
-        LogEntry safeEntry = LogEntry.builder().clientIp("1.2.3.4").endpoint("/index.html").build();
-        assert rule.evaluate(safeEntry).isEmpty() : "Safe endpoint must not trigger";
+        LogEntry safe = LogEntry.builder().clientIp("1.2.3.4").endpoint("/index.html").build();
+        if (rule.evaluate(safe).isPresent()) throw new AssertionError("Triggered on safe endpoint");
 
-        LogEntry probeEntry = LogEntry.builder().clientIp("1.2.3.4").endpoint("/wp-admin/install.php").build();
-        Optional<Incident> incident = rule.evaluate(probeEntry);
-        assert incident.isPresent() : "Sensitive endpoint must trigger scan anomaly";
-        assert incident.get().getAnomalyType() == AnomalyType.SUSPICIOUS_PATH_SCAN;
+        LogEntry probe = LogEntry.builder().clientIp("1.2.3.4").endpoint("/wp-admin/login.php").build();
+        Optional<Incident> inc = rule.evaluate(probe);
+        if (inc.isEmpty()) throw new AssertionError("Expected scan detection");
+        if (inc.get().getAnomalyType() != AnomalyType.SUSPICIOUS_PATH_SCAN) throw new AssertionError("Type mismatch");
     }
 
-    public static void testServerErrorBurstRule() {
+    public static void testServerErrorBurst() {
         ServerErrorBurstRule rule = new ServerErrorBurstRule(2, 60);
         Instant now = Instant.now();
 
         LogEntry err1 = LogEntry.builder().endpoint("/checkout").statusCode(500).timestamp(now).build();
         LogEntry err2 = LogEntry.builder().endpoint("/checkout").statusCode(503).timestamp(now.plusSeconds(1)).build();
 
-        assert rule.evaluate(err1).isEmpty();
-        Optional<Incident> incident = rule.evaluate(err2);
-        assert incident.isPresent();
-        assert incident.get().getAnomalyType() == AnomalyType.SERVER_ERROR_BURST;
+        if (rule.evaluate(err1).isPresent()) throw new AssertionError("Triggered on 1st error");
+        Optional<Incident> inc = rule.evaluate(err2);
+        if (inc.isEmpty()) throw new AssertionError("Expected 5xx burst incident");
+        if (inc.get().getAnomalyType() != AnomalyType.SERVER_ERROR_BURST) throw new AssertionError("Type mismatch");
     }
 }

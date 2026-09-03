@@ -8,24 +8,20 @@ import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Parser for Syslog-encapsulated web server and gateway logs (RFC 3164 / RFC 5424).
- */
 public class SyslogParser implements LogParser {
 
-    // Matches: <PRI>TIMESTAMP HOST APP[PID]: IP - - [DATE] "METHOD URI PROTO" STATUS BYTES
     private static final Pattern SYSLOG_PATTERN = Pattern.compile(
             "^(?:<\\d+>)?(?:\\d+ )?(\\S+) (\\S+) (?:[^\\[:]+)(?:\\[\\d+\\])?:? (\\S+) \\S+ \\S+ \\[[^\\]]+\\] \"(\\S+) (\\S+) ([^\"]+)\" (\\d{3}) (\\d+|-)");
 
     @Override
     public LogEntry parse(String rawLine, long lineNumber) throws LogParseException {
         if (rawLine == null || rawLine.isBlank()) {
-            throw new LogParseException("Blank line encountered", rawLine, lineNumber);
+            throw new LogParseException("Empty line", rawLine, lineNumber);
         }
 
         Matcher matcher = SYSLOG_PATTERN.matcher(rawLine.trim());
         if (!matcher.find()) {
-            throw new LogParseException("Line does not match standard Syslog web format", rawLine, lineNumber);
+            throw new LogParseException("Does not match Syslog web format", rawLine, lineNumber);
         }
 
         try {
@@ -71,6 +67,6 @@ public class SyslogParser implements LogParser {
 
     @Override
     public String getFormatName() {
-        return "RFC 5424/3164 Syslog Format";
+        return "Syslog";
     }
 }

@@ -13,15 +13,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Orchestrator for evaluating log entries against all active anomaly detection rules.
- */
 public class AnomalyDetectionEngine {
 
     private final List<Rule> activeRules = new CopyOnWriteArrayList<>();
 
     public AnomalyDetectionEngine(LogPulseConfig config) {
-        // Register default configured rules
         registerRule(new BruteForceRule(config.getAuthFailureThreshold(), config.getSlidingWindowSeconds()));
         registerRule(new RateLimitRule(config.getRateLimitThreshold(), config.getSlidingWindowSeconds()));
         registerRule(new ServerErrorBurstRule(config.getServerErrorThreshold(), config.getSlidingWindowSeconds()));
@@ -34,12 +30,6 @@ public class AnomalyDetectionEngine {
         }
     }
 
-    /**
-     * Evaluates a single LogEntry across all registered rules.
-     *
-     * @param entry The parsed LogEntry.
-     * @return List of triggered incidents (empty if no anomalies detected).
-     */
     public List<Incident> evaluate(LogEntry entry) {
         if (entry == null) {
             return Collections.emptyList();

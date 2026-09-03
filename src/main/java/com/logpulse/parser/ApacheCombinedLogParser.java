@@ -12,30 +12,24 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * High-performance regex parser for Nginx and Apache Combined Log Formats:
- * %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" [Optional: %D or %T]
- */
 public class ApacheCombinedLogParser implements LogParser {
 
-    private static final String APACHE_PATTERN_REGEX =
+    private static final String LOG_REGEX =
             "^(\\S+) \\S+ \\S+ \\[([^\\]]+)\\] \"(\\S+) (\\S+) ([^\"]+)\" (\\d{3}) (\\d+|-) \"([^\"]*)\" \"([^\"]*)\"(?: (\\d+))?";
 
-    private final Pattern pattern = Pattern.compile(APACHE_PATTERN_REGEX);
-
-    // Common Apache date format: 10/Oct/2026:13:55:36 +0000
-    private static final DateTimeFormatter DATE_FORMATTER =
+    private final Pattern pattern = Pattern.compile(LOG_REGEX);
+    private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z", Locale.ENGLISH);
 
     @Override
     public LogEntry parse(String rawLine, long lineNumber) throws LogParseException {
         if (rawLine == null || rawLine.isBlank()) {
-            throw new LogParseException("Blank or null line encountered", rawLine, lineNumber);
+            throw new LogParseException("Empty line", rawLine, lineNumber);
         }
 
         Matcher matcher = pattern.matcher(rawLine);
         if (!matcher.find()) {
-            throw new LogParseException("Line does not match Apache Combined format", rawLine, lineNumber);
+            throw new LogParseException("Does not match Apache/Nginx format", rawLine, lineNumber);
         }
 
         try {
@@ -49,8 +43,8 @@ public class ApacheCombinedLogParser implements LogParser {
             long bytes = bytesStr.equals("-") ? 0L : Long.parseLong(bytesStr);
             String referer = matcher.group(8);
             String userAgent = matcher.group(9);
-            String responseTimeStr = matcher.group(10);
-            long responseTimeMs = responseTimeStr != null ? Long.parseLong(responseTimeStr) : 0L;
+            String latencyStr = matcher.group(10);
+            long latencyMs = latencyStr != null ? Long.parseLong(latencyStr) : 0L;
 
             Instant timestamp = parseDate(dateStr);
 
@@ -62,7 +56,7 @@ public class ApacheCombinedLogParser implements LogParser {
                     .httpVersion(httpVersion)
                     .statusCode(statusCode)
                     .responseBytes(bytes)
-                    .responseTimeMs(responseTimeMs)
+                    .responseTimeMs(latencyMs)
                     .referer(referer)
                     .userAgent(userAgent)
                     .rawLine(rawLine)
@@ -70,16 +64,14 @@ public class ApacheCombinedLogParser implements LogParser {
                     .build();
 
         } catch (Exception e) {
-            throw new LogParseException("Failed to extract fields from Apache log entry: " + e.getMessage(),
-                    rawLine, lineNumber, e);
+            throw new LogParseException("Failed to extract tokens: " + e.getMessage(), rawLine, lineNumber, e);
         }
     }
 
     private Instant parseDate(String dateStr) {
         try {
-            return ZonedDateTime.parse(dateStr, DATE_FORMATTER).toInstant();
+            return ZonedDateTime.parse(dateStr, FORMATTER).toInstant();
         } catch (DateTimeParseException e) {
-            // Fallback for ISO-8601 timestamps
             try {
                 return Instant.parse(dateStr);
             } catch (Exception ex) {
@@ -90,12 +82,11 @@ public class ApacheCombinedLogParser implements LogParser {
 
     @Override
     public boolean canParse(String sampleLine) {
-        if (sampleLine == null) return false;
-        return pattern.matcher(sampleLine).find();
+        return sampleLine != null && pattern.matcher(sampleLine).find();
     }
 
     @Override
     public String getFormatName() {
-        return "Apache/Nginx Combined Log Format";
+        return "Apache/Nginx Combined";
     }
 }

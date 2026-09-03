@@ -8,30 +8,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/**
- * Factory class providing parser strategy resolution and format auto-detection.
- */
 public final class ParserFactory {
 
-    private static final List<LogParser> AVAILABLE_PARSERS = List.of(
+    private static final List<LogParser> PARSERS = List.of(
             new JsonLogParser(),
             new ApacheCombinedLogParser(),
             new SyslogParser()
     );
 
-    private ParserFactory() {
-        // Prevent instantiation
-    }
+    private ParserFactory() {}
 
-    /**
-     * Resolves the appropriate LogParser strategy based on requested format string or auto-detection.
-     *
-     * @param format   "auto", "apache", "nginx", "json", "syslog"
-     * @param filePath Path to the target log file for sample sniffing when "auto" is requested.
-     * @return Resolved LogParser instance.
-     */
     public static LogParser getParser(String format, Path filePath) {
-        if (format == null || format.isBlank() || format.equalsIgnoreCase("auto")) {
+        if (format == null || format.isBlank() || "auto".equalsIgnoreCase(format)) {
             return autoDetect(filePath);
         }
 
@@ -39,33 +27,28 @@ public final class ParserFactory {
             case "apache", "nginx", "combined", "clf" -> new ApacheCombinedLogParser();
             case "json", "ndjson" -> new JsonLogParser();
             case "syslog", "rfc5424" -> new SyslogParser();
-            default -> throw new ConfigurationException("Unsupported log format: '" + format +
-                    "'. Supported formats: auto, apache, nginx, json, syslog");
+            default -> throw new ConfigurationException("Unsupported log format: " + format);
         };
     }
 
-    /**
-     * Reads the first non-empty line of the file and inspects patterns to detect format.
-     */
     public static LogParser autoDetect(Path filePath) {
         try (BufferedReader reader = Files.newBufferedReader(filePath)) {
-            String sampleLine;
-            while ((sampleLine = reader.readLine()) != null) {
-                if (sampleLine.isBlank() || sampleLine.startsWith("#")) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank() || line.startsWith("#")) {
                     continue;
                 }
-                for (LogParser parser : AVAILABLE_PARSERS) {
-                    if (parser.canParse(sampleLine)) {
+                for (LogParser parser : PARSERS) {
+                    if (parser.canParse(line)) {
                         return parser;
                     }
                 }
                 break;
             }
         } catch (IOException e) {
-            throw new ConfigurationException("Unable to read sample line for format detection: " + e.getMessage());
+            throw new ConfigurationException("Unable to read file for format detection: " + e.getMessage());
         }
 
-        // Default fallback to Apache Combined format
         return new ApacheCombinedLogParser();
     }
 }

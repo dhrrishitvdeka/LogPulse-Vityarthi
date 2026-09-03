@@ -19,13 +19,9 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Multi-threaded Producer-Consumer pipeline orchestrating concurrent log parsing
- * and real-time anomaly evaluation using bounded BlockingQueues.
- */
 public class LogPipeline {
 
-    private static final String POISON_PILL = "__LOGPULSE_STREAM_EOF_TOKEN__";
+    private static final String EOF_MARKER = "__EOF__";
 
     private final LogPulseConfig config;
     private final LogStats stats;
@@ -39,33 +35,27 @@ public class LogPipeline {
         this.aggregator = new IncidentAggregator();
         this.detectionEngine = new AnomalyDetectionEngine(config);
 
-        Path logPath = Paths.get(config.getLogFilePath());
-        this.parser = ParserFactory.getParser(config.getFormat(), logPath);
+        Path path = Paths.get(config.getLogFilePath());
+        this.parser = ParserFactory.getParser(config.getFormat(), path);
     }
 
-    /**
-     * Executes the streaming pipeline synchronously and returns collected metrics.
-     */
     public LogStats execute() {
         Path filePath = Paths.get(config.getLogFilePath());
-        int threadCount = config.getWorkerThreads();
+        int threads = config.getWorkerThreads();
         BlockingQueue<String> queue = new ArrayBlockingQueue<>(config.getQueueCapacity());
-        ExecutorService workerPool = Executors.newFixedThreadPool(threadCount);
-        CountDownLatch latch = new CountDownLatch(threadCount);
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        CountDownLatch latch = new CountDownLatch(threads);
         AtomicLong lineCounter = new AtomicLong(0);
 
-        // 1. Submit Consumer Workers
-        for (int i = 0; i < threadCount; i++) {
-            workerPool.submit(() -> {
+        for (int i = 0; i < threads; i++) {
+            executor.submit(() -> {
                 try {
                     while (true) {
-                        String rawLine = queue.take();
-                        if (POISON_PILL.equals(rawLine)) {
+                        String line = queue.take();
+                        if (EOF_MARKER.equals(line)) {
                             break;
                         }
-
-                        long lineNum = lineCounter.incrementAndGet();
-                        processLine(rawLine, lineNum);
+                        processLine(line, lineCounter.incrementAndGet());
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -75,36 +65,32 @@ public class LogPipeline {
             });
         }
 
-        // 2. Start Producer on separate thread to feed the bounded queue
-        CompletableFuture<Void> producerFuture = CompletableFuture.runAsync(() -> {
+        CompletableFuture<Void> producer = CompletableFuture.runAsync(() -> {
             try (BufferedReader reader = Files.newBufferedReader(filePath)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     stats.incrementLinesRead();
-                    stats.addBytes(line.length() + 1); // approximate bytes with newline
+                    stats.addBytes(line.length() + 1);
                     queue.put(line);
                 }
-
-                // Append poison pills to gracefully notify all worker threads
-                for (int i = 0; i < threadCount; i++) {
-                    queue.put(POISON_PILL);
+                for (int i = 0; i < threads; i++) {
+                    queue.put(EOF_MARKER);
                 }
             } catch (IOException | InterruptedException e) {
-                throw new LogPulseException("I/O error during log ingestion: " + e.getMessage(), e);
+                throw new LogPulseException("Error reading input log file: " + e.getMessage(), e);
             }
         });
 
-        // 3. Await completion of producer and consumer workers
         try {
-            producerFuture.join();
+            producer.join();
             latch.await();
-            workerPool.shutdown();
-            if (!workerPool.awaitTermination(30, TimeUnit.SECONDS)) {
-                workerPool.shutdownNow();
+            executor.shutdown();
+            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new LogPulseException("Pipeline interrupted during execution", e);
+            throw new LogPulseException("Pipeline processing interrupted", e);
         } finally {
             stats.finish();
         }
@@ -123,12 +109,11 @@ public class LogPipeline {
             stats.recordStatusCode(entry.getStatusCode());
 
             List<Incident> incidents = detectionEngine.evaluate(entry);
-            for (Incident incident : incidents) {
-                aggregator.record(incident);
+            for (Incident inc : incidents) {
+                aggregator.record(inc);
                 stats.incrementIncidents();
             }
         } catch (LogParseException e) {
-            // Fault tolerance: record malformed line without crashing pipeline
             stats.incrementMalformed();
         } catch (Exception e) {
             stats.incrementMalformed();
