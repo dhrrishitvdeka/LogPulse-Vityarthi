@@ -62,8 +62,8 @@ javac -version
 
 ### Cloning the Repository
 ```bash
-git clone https://github.com/{your-username}/Java-VitYarthi.git
-cd Java-VitYarthi
+git clone https://github.com/dhrrishitvdeka/LogPulse-Vityarthi.git
+cd LogPulse-Vityarthi
 ```
 
 ---
