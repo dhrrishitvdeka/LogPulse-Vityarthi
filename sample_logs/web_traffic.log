@@ -1,0 +1,10 @@
+192.168.1.10 - - [03/Sep/2026:10:00:01 +0000] "GET /index.html HTTP/1.1" 200 4096 "https://google.com" "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" 15
+192.168.1.11 - - [03/Sep/2026:10:00:02 +0000] "GET /css/style.css HTTP/1.1" 200 1024 "https://example.com/index.html" "Mozilla/5.0" 8
+192.168.1.12 - - [03/Sep/2026:10:00:03 +0000] "GET /js/app.js HTTP/1.1" 200 2048 "https://example.com/index.html" "Mozilla/5.0" 12
+192.168.1.10 - - [03/Sep/2026:10:00:05 +0000] "GET /api/v1/products HTTP/1.1" 200 8192 "https://example.com/index.html" "Mozilla/5.0" 42
+10.0.0.15 - - [03/Sep/2026:10:00:07 +0000] "GET /about HTTP/1.1" 301 0 "-" "Mozilla/5.0" 5
+10.0.0.15 - - [03/Sep/2026:10:00:08 +0000] "GET /about/ HTTP/1.1" 200 3500 "-" "Mozilla/5.0" 20
+172.16.5.20 - - [03/Sep/2026:10:00:10 +0000] "GET /images/logo.png HTTP/1.1" 304 0 "https://example.com/about/" "Mozilla/5.0" 4
+172.16.5.21 - - [03/Sep/2026:10:00:12 +0000] "POST /api/v1/contact HTTP/1.1" 201 512 "https://example.com/contact" "Mozilla/5.0" 65
+192.168.1.15 - - [03/Sep/2026:10:00:15 +0000] "GET /not-found-page HTTP/1.1" 404 150 "-" "Mozilla/5.0" 6
+192.168.1.16 - - [03/Sep/2026:10:00:18 +0000] "GET /favicon.ico HTTP/1.1" 200 1150 "-" "Mozilla/5.0" 3
