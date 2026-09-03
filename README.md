@@ -277,3 +277,12 @@ Java-VitYarthi/
     │   └── exception/                      # Domain-specific exception hierarchy
     └── test/java/com/logpulse/             # Automated test runner and unit test suites
 ```
+
+---
+
+## 10. Author & Contact
+
+* **Author**: Dhrrishit V Deka
+* **Email**: [n9yyk6uuu@mozmail.com](mailto:n9yyk6uuu@mozmail.com)
+* **Institution**: VIT Bhopal University — School of Computing Science and Engineering
+* **Course**: Programming in Java (Evaluated Course Project, VITyarthi Platform)
