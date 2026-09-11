@@ -23,15 +23,17 @@ public class CsvReportExporter implements ReportExporter {
 
             List<Incident> incidents = aggregator.getAllIncidents();
             for (Incident inc : incidents) {
+                String detectedAt = inc.getDetectedAt() != null ? inc.getDetectedAt().toString() : "";
+                String details = inc.getDetails() != null ? inc.getDetails().replace("\"", "\"\"") : "";
                 writer.write(String.format("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%d,%d,\"%s\"\n",
                         inc.getIncidentId(),
-                        inc.getDetectedAt(),
+                        detectedAt,
                         inc.getAnomalyType().name(),
                         inc.getSeverity().name(),
                         inc.getClientIp(),
                         inc.getEventCount(),
                         inc.getWindowSeconds(),
-                        inc.getDetails().replace("\"", "\"\"")));
+                        details));
             }
         }
     }

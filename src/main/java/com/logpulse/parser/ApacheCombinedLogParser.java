@@ -46,7 +46,7 @@ public class ApacheCombinedLogParser implements LogParser {
             String latencyStr = matcher.group(10);
             long latencyMs = latencyStr != null ? Long.parseLong(latencyStr) : 0L;
 
-            Instant timestamp = parseDate(dateStr);
+            Instant timestamp = parseDate(dateStr, rawLine, lineNumber);
 
             return LogEntry.builder()
                     .clientIp(ip)
@@ -63,19 +63,21 @@ public class ApacheCombinedLogParser implements LogParser {
                     .lineNumber(lineNumber)
                     .build();
 
+        } catch (LogParseException e) {
+            throw e;
         } catch (Exception e) {
             throw new LogParseException("Failed to extract tokens: " + e.getMessage(), rawLine, lineNumber, e);
         }
     }
 
-    private Instant parseDate(String dateStr) {
+    private Instant parseDate(String dateStr, String rawLine, long lineNumber) throws LogParseException {
         try {
             return ZonedDateTime.parse(dateStr, FORMATTER).toInstant();
         } catch (DateTimeParseException e) {
             try {
                 return Instant.parse(dateStr);
             } catch (Exception ex) {
-                return Instant.now();
+                throw new LogParseException("Unparseable date: " + dateStr, rawLine, lineNumber, ex);
             }
         }
     }

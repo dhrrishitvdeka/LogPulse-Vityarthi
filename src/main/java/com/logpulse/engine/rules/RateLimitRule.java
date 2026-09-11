@@ -25,8 +25,9 @@ public class RateLimitRule implements Rule {
     public Optional<Incident> evaluate(LogEntry entry) {
         String key = "RATE_LIMIT:" + entry.getClientIp();
         int count = rateLimiter.recordAndCount(key, entry.getTimestamp());
+        int emitEvery = Math.max(1, requestLimitThreshold / 2);
 
-        if (count >= requestLimitThreshold && (count == requestLimitThreshold || count % (requestLimitThreshold / 2) == 0)) {
+        if (count >= requestLimitThreshold && (count == requestLimitThreshold || count % emitEvery == 0)) {
             SeverityLevel severity = (count >= requestLimitThreshold * 2) ? SeverityLevel.CRITICAL : SeverityLevel.MEDIUM;
             String details = count + " requests in " + windowSeconds + "s (threshold: " + requestLimitThreshold + ")";
 

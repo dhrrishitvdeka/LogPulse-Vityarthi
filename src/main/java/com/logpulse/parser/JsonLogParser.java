@@ -45,7 +45,10 @@ public class JsonLogParser implements LogParser {
                     case "timestamp", "time", "@timestamp", "date" -> {
                         try {
                             timestamp = Instant.parse(val);
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                            // Intentionally ignored: keep default timestamp (Instant.now())
+                            // for unparseable values; line still parses as valid.
+                        }
                     }
                     case "method", "http_method", "verb" -> method = HttpMethod.fromString(val);
                     case "endpoint", "uri", "path", "url" -> endpoint = val;

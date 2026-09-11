@@ -76,7 +76,7 @@ public class LogStats {
     }
 
     public ConcurrentHashMap<Integer, AtomicLong> getStatusCodeCounts() {
-        return statusCodeCounts;
+        return new ConcurrentHashMap<>(statusCodeCounts);
     }
 
     public double getElapsedSeconds() {

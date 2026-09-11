@@ -48,27 +48,70 @@ public class Main {
 
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
-            if (arg.startsWith("--") && i + 1 < args.length) {
+            if (arg.startsWith("-") && i + 1 < args.length) {
+                String normalized = normalizeFlag(arg);
+                // If the next token looks like another option, treat value as missing,
+                // unless it is a negative number for a numeric option (handled by parse helpers).
                 String val = args[++i];
-                switch (arg) {
-                    case "--file", "-f" -> builder.logFilePath(val);
+                switch (normalized) {
+                    case "--file" -> builder.logFilePath(val);
                     case "--format" -> builder.format(val);
-                    case "--window", "-w" -> builder.slidingWindowSeconds(Long.parseLong(val));
-                    case "--rate-limit", "-r" -> builder.rateLimitThreshold(Integer.parseInt(val));
-                    case "--auth-threshold", "-a" -> builder.authFailureThreshold(Integer.parseInt(val));
-                    case "--error-threshold", "-e" -> builder.serverErrorThreshold(Integer.parseInt(val));
-                    case "--top", "-k" -> builder.topKOffenders(Integer.parseInt(val));
-                    case "--threads", "-t" -> builder.workerThreads(Integer.parseInt(val));
+                    case "--window" -> builder.slidingWindowSeconds(parseLongOption("--window", val));
+                    case "--rate-limit" -> builder.rateLimitThreshold(parseIntOption("--rate-limit", val));
+                    case "--auth-threshold" -> builder.authFailureThreshold(parseIntOption("--auth-threshold", val));
+                    case "--error-threshold" -> builder.serverErrorThreshold(parseIntOption("--error-threshold", val));
+                    case "--top" -> builder.topKOffenders(parseIntOption("--top", val));
+                    case "--threads" -> builder.workerThreads(parseIntOption("--threads", val));
                     case "--export" -> builder.exportFormat(val);
-                    case "--output", "-o" -> builder.exportPath(val);
+                    case "--output" -> builder.exportPath(val);
+                    case "--help" -> {
+                        printHelp();
+                        System.exit(0);
+                    }
                     default -> throw new ConfigurationException("Unknown option: " + arg);
                 }
-            } else if (arg.startsWith("--")) {
+            } else if (arg.startsWith("-")) {
+                String normalized = normalizeFlag(arg);
+                if ("--help".equals(normalized)) {
+                    printHelp();
+                    System.exit(0);
+                }
                 throw new ConfigurationException("Missing argument value for " + arg);
             }
         }
 
         return builder.build();
+    }
+
+    private static String normalizeFlag(String arg) {
+        return switch (arg) {
+            case "-f" -> "--file";
+            case "-w" -> "--window";
+            case "-r" -> "--rate-limit";
+            case "-a" -> "--auth-threshold";
+            case "-e" -> "--error-threshold";
+            case "-k" -> "--top";
+            case "-t" -> "--threads";
+            case "-o" -> "--output";
+            case "-h" -> "--help";
+            default -> arg;
+        };
+    }
+
+    private static long parseLongOption(String option, String val) {
+        try {
+            return Long.parseLong(val);
+        } catch (NumberFormatException e) {
+            throw new ConfigurationException("Invalid value for " + option + ": '" + val + "'");
+        }
+    }
+
+    private static int parseIntOption(String option, String val) {
+        try {
+            return Integer.parseInt(val);
+        } catch (NumberFormatException e) {
+            throw new ConfigurationException("Invalid value for " + option + ": '" + val + "'");
+        }
     }
 
     private static void handleExports(LogPulseConfig config, LogStats stats, LogPipeline pipeline) {
@@ -92,7 +135,11 @@ public class Main {
                 new CsvReportExporter().export(stats, pipeline.getAggregator(), csvPath);
                 System.out.println("Saved JSON report to: " + jsonPath.toAbsolutePath());
                 System.out.println("Saved CSV report to: " + csvPath.toAbsolutePath());
+            } else {
+                throw new ConfigurationException("Unsupported export format: '" + exportFormat + "'. Supported formats: none, json, csv, all");
             }
+        } catch (ConfigurationException e) {
+            throw e;
         } catch (Exception e) {
             System.err.println("Export warning: " + e.getMessage());
         }

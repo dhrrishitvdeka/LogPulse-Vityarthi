@@ -14,6 +14,9 @@ public class SlidingWindowRateLimiter {
     }
 
     public int recordAndCount(String key, Instant eventTime) {
+        if (keyWindows.size() > 10000) {
+            cleanupInactiveKeys();
+        }
         long currentTimestamp = (eventTime != null) ? eventTime.toEpochMilli() : System.currentTimeMillis();
         long cutoff = currentTimestamp - windowMillis;
 

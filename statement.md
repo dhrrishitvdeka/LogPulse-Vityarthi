@@ -5,7 +5,7 @@
 **Academic Component**: Evaluated Course Project (Flipped Course Evaluation)  
 **Platform**: VITyarthi — VIT Bhopal University  
 **Author**: Dhrrishit V Deka  
-**Contact Email**: n9yyk6uuu@mozmail.com  
+**Contact Email**: n9yyk6uuu@proton.me  
 
 ---
 

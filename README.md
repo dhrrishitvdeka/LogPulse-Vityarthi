@@ -135,7 +135,7 @@ java -cp bin com.logpulse.Main --file <path> [options]
 | `--top` | `-k` | Number of top offending IPs to display in the ranking table. | `5` |
 | `--threads` | `-t` | Number of parallel worker threads in the consumer pool. | CPU Cores |
 | `--export` | | Export format: `none`, `json`, `csv`, `all` | `none` |
-| `--output` | `-o` | Output file path for audit reports. | `report.json` |
+| `--output` | `-o` | Output file path for audit reports. | `logpulse_report.json` |
 | `--help` | `-h` | Prints usage manual and exits. | |
 
 ### Example Commands
@@ -175,83 +175,73 @@ test.bat
 java -ea -cp bin com.logpulse.LogPulseTestRunner
 ```
 
-Expected Test Output:
+Expected Test Output (structure matches `src/test/java/com/logpulse/LogPulseTestRunner.java`; timing varies by machine):
+
+Command:
+```bash
+java -ea -cp bin com.logpulse.LogPulseTestRunner
 ```
-================================================================================
-LOGPULSE TEST SUITE: RUNNING AUTOMATED UNIT & INTEGRATION VERIFICATION
-================================================================================
 
-[1/4] Running LogParser Tests...
-  ✔ ParserTest: All parser test suites passed.
-
-[2/4] Running SlidingWindow Rate Limiter & Concurrency Tests...
-  ✔ SlidingWindowTest: All sliding-window test suites passed.
-
-[3/4] Running Anomaly Detection Rule Tests...
-  ✔ AnomalyDetectionTest: All detection rule test suites passed.
-
-[4/4] Running Pipeline Concurrency & Top-K Heap Tests...
-  ✔ PipelineConcurrencyTest: Aggregation & concurrency tests passed.
-
-================================================================================
-ALL TEST SUITES PASSED (4/4) in 120 ms.
-Exit Code: 0 (OK)
-================================================================================
+```
+Running LogPulse test suite...
+  [OK] Parser tests passed
+  [OK] Sliding window tests passed
+  [OK] Anomaly detection tests passed
+  [OK] Concurrency & heap tests passed
+All tests passed (<duration varies> ms).
 ```
 
 ---
 
 ## 8. Sample Terminal Execution & Results
 
+Structure matches `src/main/java/com/logpulse/Main.java` preamble plus `src/main/java/com/logpulse/reporter/TerminalReporter.java` dashboard. Values below are illustrative placeholders — timing and counts vary by machine and log content.
+
+Command (note `--auth-threshold 4`, lowered from the default `5` so the sample brute-force log triggers):
+```bash
+java -cp bin com.logpulse.Main --file sample_logs/brute_force_attack.log --auth-threshold 4 --window 60 --export json --output target/brute_force_report.json
 ```
-Initializing LogPulse Engine on: sample_logs/brute_force_attack.log...
-Configuration: Worker Threads = 8 | Format = auto | Window = 60s
-================================================================================
-               LOGPULSE // HIGH-THROUGHPUT ANOMALY ENGINE                       
-================================================================================
 
-[ 1. PIPELINE TELEMETRY & PERFORMANCE ]
-  Total Processing Time    : 0.091 seconds
-  Total Lines Processed    : 18 lines (0.00 MB)
-  Valid Lines Parsed       : 18
-  Malformed / Skipped      : 0
-  Throughput               : 198 lines/sec (0.02 MB/sec)
+```
+Processing: sample_logs/brute_force_attack.log
+Workers: <varies> | Format: auto
+----------------------------------------------------------------
+LogPulse Execution Summary
+----------------------------------------------------------------
 
-[ 2. HTTP STATUS DISTRIBUTION ]
-  2xx Success: 2 | 3xx Redirect: 0 | 4xx Client Error: 16 | 5xx Server Error: 0
+[Performance]
+  Execution Time      : <varies> s
+  Lines Processed     : <N>
+  Valid Lines Parsed  : <N>
+  Malformed / Skipped : <N>
+  Throughput          : <varies> lines/sec
 
-[ 3. DETECTED ANOMALY BREAKDOWN ]
-  Total Incidents Flagged: 5
-  - BRUTE_FORCE_AUTH                : 2 incident(s)
-  - SUSPICIOUS_PATH_SCAN            : 3 incident(s)
+[HTTP Status Breakdown]
+  2xx: <N> | 3xx: <N> | 4xx: <N> | 5xx: <N>
 
-[ 4. TOP 5 OFFENDING IP ADDRESSES ]
-  +----+-----------------+------------+---------------+----------------------------------+
-  | #  | IP Address      | Incidents  | Max Severity  | Primary Anomaly Vector           |
-  +----+-----------------+------------+---------------+----------------------------------+
-  | 1  | 198.51.100.99   | 3          | HIGH          | SUSPICIOUS_PATH_SCAN             |
-  | 2  | 203.0.113.45    | 1          | HIGH          | BRUTE_FORCE_AUTH                 |
-  | 3  | 198.51.100.22   | 1          | HIGH          | BRUTE_FORCE_AUTH                 |
-  +----+-----------------+------------+---------------+----------------------------------+
+[Detected Anomalies]
+  Total Incidents: <N>
+  - BRUTE_FORCE_AUTH          : <N>
+  - SUSPICIOUS_PATH_SCAN      : <N>
 
-[ 5. RECENT CRITICAL INCIDENTS AUDIT TRAIL ]
-  [HIGH] SUSPICIOUS_PATH_SCAN 198.51.100.99   -> Reconnaissance signature '/.env' detected in request URL '/.env'
-  [HIGH] SUSPICIOUS_PATH_SCAN 198.51.100.99   -> Reconnaissance signature '/phpmyadmin' detected in request URL '/phpmyadmin/index.php'
-  [HIGH] BRUTE_FORCE_AUTH 203.0.113.45    -> Observed 4 consecutive 401/403 failures on '/api/v1/auth/login' within 60s window
-  [HIGH] BRUTE_FORCE_AUTH 198.51.100.22   -> Observed 4 consecutive 401/403 failures on '/admin/auth' within 60s window
-  [HIGH] SUSPICIOUS_PATH_SCAN 198.51.100.99   -> Reconnaissance signature '/wp-admin' detected in request URL '/wp-admin/login.php'
+[Top 5 Offending IPs]
+  No.  IP Address       Incidents  Severity
+  1    <ip>             <N>        <SEVERITY>
+  ...
 
-================================================================================
-LogPulse Execution Completed Successfully. Exit Code: 0
-================================================================================
-✔ Exported JSON audit report to: target/brute_force_report.json
+[Recent Incidents]
+  [SEVERITY] <ANOMALY_TYPE> <ip> - <details>
+  ... (up to last 5 incidents; section omitted when no incidents exist)
+
+----------------------------------------------------------------
+Saved JSON report to: <absolute path to target/brute_force_report.json>
 ```
 
 ---
 
 ## 9. Repository Structure
 ```
-Java-VitYarthi/
+LogPulse-Vityarthi/
 ├── pom.xml                                 # Maven configuration with JUnit 5
 ├── README.md                               # Project documentation & run guide
 ├── statement.md                            # Academic problem statement
@@ -278,11 +268,13 @@ Java-VitYarthi/
     └── test/java/com/logpulse/             # Automated test runner and unit test suites
 ```
 
+Note: generated `bin/`, `target/`, and `.gitignore` are omitted from this tree for brevity.
+
 ---
 
 ## 10. Author & Contact
 
 * **Author**: Dhrrishit V Deka
-* **Email**: [dhrrishitvdeka@duck.com](mailto:dhrrishitvdeka@duck.com)
+* **Email**: [n9yyk6uuu@proton.me](mailto:n9yyk6uuu@proton.me)
 * **Institution**: VIT Bhopal University — School of Computing Science and Artificial Intelligence (SCAI)
 * **Course**: Programming in Java (Evaluated Course Project, VITyarthi Platform)

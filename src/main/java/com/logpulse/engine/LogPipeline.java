@@ -18,10 +18,11 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class LogPipeline {
 
-    private static final String EOF_MARKER = "__EOF__";
+    private static final String EOF_MARKER = new String("__LOGPULSE_POISON_PILL__");
 
     private final LogPulseConfig config;
     private final LogStats stats;
@@ -52,7 +53,7 @@ public class LogPipeline {
                 try {
                     while (true) {
                         String line = queue.take();
-                        if (EOF_MARKER.equals(line)) {
+                        if (line == EOF_MARKER) {
                             break;
                         }
                         processLine(line, lineCounter.incrementAndGet());
@@ -65,6 +66,7 @@ public class LogPipeline {
             });
         }
 
+        AtomicReference<Throwable> producerError = new AtomicReference<>();
         CompletableFuture<Void> producer = CompletableFuture.runAsync(() -> {
             try (BufferedReader reader = Files.newBufferedReader(filePath)) {
                 String line;
@@ -73,16 +75,28 @@ public class LogPipeline {
                     stats.addBytes(line.length() + 1);
                     queue.put(line);
                 }
-                for (int i = 0; i < threads; i++) {
-                    queue.put(EOF_MARKER);
-                }
             } catch (IOException | InterruptedException e) {
-                throw new LogPulseException("Error reading input log file: " + e.getMessage(), e);
+                producerError.set(e);
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+            } finally {
+                for (int i = 0; i < threads; i++) {
+                    try {
+                        queue.put(EOF_MARKER);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
             }
         });
 
         try {
             producer.join();
+            if (producerError.get() != null) {
+                throw new LogPulseException("Error reading input log file: " + producerError.get().getMessage(), producerError.get());
+            }
             latch.await();
             executor.shutdown();
             if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
