@@ -12,7 +12,7 @@
 * **Submission Date**: September 2026
 * **Language & Runtime**: Java SE 17+ (JDK 26 Verified)
 * **Author**: Dhrrishit V Deka
-* **Contact Email**: dhrrishitvdeka@duck.com
+* **Contact Email**: n9yyk6uuu@proton.me
 
 ---
 

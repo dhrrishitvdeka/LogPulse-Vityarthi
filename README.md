@@ -275,6 +275,6 @@ Note: generated `bin/`, `target/`, and `.gitignore` are omitted from this tree f
 ## 10. Author & Contact
 
 * **Author**: Dhrrishit V Deka
-* **Email**: [dhrrishitvdeka@duck.com](mailto:dhrrishitvdeka@duck.com)
+* **Email**: [n9yyk6uuu@proton.me](mailto:n9yyk6uuu@proton.me)
 * **Institution**: VIT Bhopal University — School of Computing Science and Artificial Intelligence (SCAI)
 * **Course**: Programming in Java (Evaluated Course Project, VITyarthi Platform)
